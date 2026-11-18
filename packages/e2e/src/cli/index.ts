@@ -37,7 +37,7 @@ import { guide } from './guide.ts';
 import { addInitOptions, checkInitFlags, type InitFlagValues } from './init/flags.ts';
 import { parseList, parseNames } from './parse-names.ts';
 import { SESSION_BOUNDS } from '../mcp/bounds.ts';
-import { PROVIDER_IDS } from '../oauth/provider-ids.ts';
+import { PROVIDER_NAMES } from '../oauth/provider-ids.ts';
 import type { LoginFlags } from '../oauth/cli.ts';
 import { Keyboard } from './keyboard.ts';
 import { SignalLadder } from './signals.ts';
@@ -573,16 +573,16 @@ function createProgram(version: string, telemetry: Telemetry, updateCheck: Updat
     .command('login')
     .summary('sign in to a ChatGPT, GitHub Copilot, OpenCode Console, or SuperGrok subscription for agent steps')
     .description(
-      'Sign in once to a personal subscription and store the login for the e2e/oauth models: openai (ChatGPT Plus/Pro, the Codex sign-in), github-copilot (GitHub Copilot; reuses the GitHub CLI login or runs a device flow for your OAuth App), opencode-console (OpenCode Console, device code), spacexai (SuperGrok or X Premium+, device code). The config then constructs the model with chatgpt(), copilot(), opencodeConsole(), or grok() from e2e/oauth/<provider>.',
+      'Sign in once to a personal subscription and store the login for the e2e/oauth models: openai (ChatGPT Plus/Pro, the Codex sign-in), github-copilot (GitHub Copilot; reuses the GitHub CLI login or runs a device flow for your OAuth App), opencode-console (OpenCode Console, device code), spacexsi (SuperGrok or X Premium+, device code). The config then constructs the model with chatgpt(), copilot(), opencodeConsole(), or grok() from e2e/oauth/<provider>.',
     )
-    .addArgument(new Argument('[provider]', 'openai, github-copilot, opencode-console, or spacexai; omitted, a picker').choices(PROVIDER_IDS))
+    .addArgument(new Argument('[provider]', 'openai, github-copilot, opencode-console, or spacexsi; omitted, a picker').choices(PROVIDER_NAMES))
     .option('--device', 'ChatGPT: show a code to enter on another device instead of opening a browser')
     .option('--client-id <id>', 'GitHub Copilot: the client id of your GitHub OAuth App with the device flow enabled')
     .option('--from-gh', 'GitHub Copilot: reuse the token of the signed-in GitHub CLI')
     .option('--enterprise-url <host>', 'GitHub Copilot: the GitHub Enterprise host')
     .addHelpText(
       'after',
-      ['', examples(['e2e login openai', 'e2e login github-copilot --from-gh', 'e2e login opencode-console', 'e2e login spacexai', 'e2e login']), '', docsLine('/subscriptions')].join('\n'),
+      ['', examples(['e2e login openai', 'e2e login github-copilot --from-gh', 'e2e login opencode-console', 'e2e login spacexsi', 'e2e login']), '', docsLine('/subscriptions')].join('\n'),
     )
     .action(async (provider: string | undefined, options: LoginFlags) => {
       const { runLogin } = await import('../oauth/cli.ts');
@@ -592,8 +592,8 @@ function createProgram(version: string, telemetry: Telemetry, updateCheck: Updat
   program
     .command('logout')
     .summary('forget a stored subscription login')
-    .description('Remove the stored login of one provider (openai, github-copilot, opencode-console, spacexai). Without a provider, a picker over the stored logins.')
-    .addArgument(new Argument('[provider]', 'openai, github-copilot, opencode-console, or spacexai; omitted, a picker').choices(PROVIDER_IDS))
+    .description('Remove the stored login of one provider (openai, github-copilot, opencode-console, spacexsi). Without a provider, a picker over the stored logins.')
+    .addArgument(new Argument('[provider]', 'openai, github-copilot, opencode-console, or spacexsi; omitted, a picker').choices(PROVIDER_NAMES))
     .addHelpText('after', ['', examples(['e2e logout', 'e2e logout openai']), '', docsLine('/subscriptions')].join('\n'))
     .action(async (provider: string | undefined) => {
       const { runLogout } = await import('../oauth/cli.ts');
@@ -606,7 +606,7 @@ function createProgram(version: string, telemetry: Telemetry, updateCheck: Updat
     .description(
       'Ask the vendor which models the stored login, or OPENCODE_API_KEY for opencode-console, serves and print their ids, the ones chatgpt(), copilot(), opencodeConsole(), and grok() take. Without a provider, every stored login and set key in turn.',
     )
-    .addArgument(new Argument('[provider]', 'openai, github-copilot, opencode-console, or spacexai; omitted, every stored login').choices(PROVIDER_IDS))
+    .addArgument(new Argument('[provider]', 'openai, github-copilot, opencode-console, or spacexsi; omitted, every stored login').choices(PROVIDER_NAMES))
     .addHelpText('after', ['', examples(['e2e models', 'e2e models openai']), '', docsLine('/subscriptions#pick-a-model')].join('\n'))
     .action(async (provider: string | undefined) => {
       const { runModels } = await import('../oauth/cli.ts');

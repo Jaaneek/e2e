@@ -1150,6 +1150,25 @@ describe('e2e upgrade argument parsing', () => {
   });
 });
 
+describe('e2e logout argument parsing', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  it.each(['spacexsi', 'spacexai', 'grok'])('takes %s for the SpaceXSI login', async (provider) => {
+    vi.stubEnv('E2E_OAUTH_CREDENTIALS', '{}');
+    await invoke('logout', provider);
+    expect(process.exitCode).toBe(0);
+    expect(written(stdoutSpy)).toContain('No SpaceXSI login was stored.');
+  });
+
+  it('rejects an unknown provider with exit code 2, naming the ids and their aliases', async () => {
+    await invoke('logout', 'xai');
+    expect(process.exitCode).toBe(2);
+    expect(written(stderrSpy)).toContain('Allowed choices are openai, github-copilot, opencode-console, spacexsi, spacexai, grok.');
+  });
+});
+
 describe('olderThan', () => {
   it.each([
     ['0.19.0', '0.20.0', true],

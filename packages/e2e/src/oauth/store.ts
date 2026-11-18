@@ -13,6 +13,7 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { withFileLock } from '../internal/file-lock.ts';
 import { OAuthError } from './errors.ts';
+import { canonicalProviderId } from './provider-ids.ts';
 import type { CredentialStore, OAuthCredentials } from './types.ts';
 
 export const CREDENTIALS_ENV = 'E2E_OAUTH_CREDENTIALS';
@@ -44,22 +45,21 @@ export class FileCredentialStore implements CredentialStore {
   }
 
   async get(providerId: string): Promise<OAuthCredentials | undefined> {
-    return this.read()[providerId];
+    const all = this.read();
+    return all[storedKey(all, providerId)];
   }
 
   async set(providerId: string, credentials: OAuthCredentials): Promise<void> {
-    await this.update((all) => ({ ...all, [providerId]: credentials }));
+    await this.update((all) => ({ ...all, [storedKey(all, providerId)]: credentials }));
   }
 
   async remove(providerId: string): Promise<void> {
-    await this.update((all) => {
-      const { [providerId]: _removed, ...rest } = all;
-      return rest;
-    });
+    const id = canonicalProviderId(providerId);
+    await this.update((all) => Object.fromEntries(Object.entries(all).filter(([key]) => canonicalProviderId(key) !== id)));
   }
 
   async list(): Promise<string[]> {
-    return Object.keys(this.read());
+    return storedIds(this.read());
   }
 
   /** Runs `refresh` holding this login's lock file, so worker processes refresh it one at a time. */
@@ -111,7 +111,7 @@ export class EnvCredentialStore implements CredentialStore {
     this.entries = parseCredentials(json, source);
   }
   async get(providerId: string): Promise<OAuthCredentials | undefined> {
-    return this.entries[providerId];
+    return this.entries[storedKey(this.entries, providerId)];
   }
   assertWritable(): never {
     throw new OAuthError('MISCONFIGURED', `${CREDENTIALS_ENV} is set, so logins come from the environment and cannot be changed here; unset it to sign in on this machine`);
@@ -123,12 +123,22 @@ export class EnvCredentialStore implements CredentialStore {
     return this.set();
   }
   async list(): Promise<string[]> {
-    return Object.keys(this.entries);
+    return storedIds(this.entries);
   }
   /** Each process holds its own copy of the variable, so there is nothing to share a refresh with. */
   async exclusive<T>(_providerId: string, refresh: () => Promise<T>): Promise<T> {
     return refresh();
   }
+}
+
+function storedKey(all: CredentialsFile, providerId: string): string {
+  const id = canonicalProviderId(providerId);
+  if (Object.hasOwn(all, id)) return id;
+  return Object.keys(all).find((key) => canonicalProviderId(key) === id) ?? id;
+}
+
+function storedIds(all: CredentialsFile): string[] {
+  return [...new Set(Object.keys(all).map(canonicalProviderId))];
 }
 
 /** The file's entries; one damaged entry is dropped rather than taking every login down with it. */
