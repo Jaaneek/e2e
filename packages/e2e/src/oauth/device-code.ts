@@ -130,6 +130,7 @@ export interface Rfc8628Options {
   readonly clientId: string;
   /** The device request's body besides `client_id`: scope, and whatever the vendor adds. */
   readonly request: Record<string, string>;
+  readonly userAgent?: string;
   readonly callbacks: OAuthLoginCallbacks;
 }
 
@@ -139,7 +140,7 @@ export function rfc8628Flow(options: Rfc8628Options): Promise<TokenResponse> {
   return runDeviceFlow<TokenResponse>({
     callbacks,
     async start(signal) {
-      const response = await postForm(options.deviceCodeUrl, { client_id: clientId, ...options.request }, signal);
+      const response = await postForm(options.deviceCodeUrl, { client_id: clientId, ...options.request }, signal, options.userAgent);
       if (!response.ok) throw new OAuthError('FLOW_FAILED', `${vendor} device login could not start: ${await describeResponse(response)}`);
       const device = await readJsonBody(response, DeviceCodeSchema, `the ${vendor} device code response`, 'is missing fields');
       return {
@@ -156,6 +157,7 @@ export function rfc8628Flow(options: Rfc8628Options): Promise<TokenResponse> {
         options.tokenUrl,
         { grant_type: 'urn:ietf:params:oauth:grant-type:device_code', client_id: clientId, device_code: authorization.deviceCode },
         signal,
+        options.userAgent,
       );
       const body: unknown = await response.json().catch(() => undefined);
       const tokens = parseTokens(body);
