@@ -45,6 +45,17 @@ describe('FileCredentialStore', () => {
     expect(readFileSync(file, 'utf8')).toBe('{}\n');
   });
 
+  it('refreshes a login stored under an alias holding the lock an earlier release holds for it', async () => {
+    const file = tempFile();
+    const store = new FileCredentialStore(file);
+    await store.set('openai', creds);
+    writeFileSync(file, JSON.stringify({ spacexai: creds }));
+    await store.exclusive('spacexsi', async () => {
+      expect(statSync(`${file}.spacexai.refresh.lock`).isFile()).toBe(true);
+      expect(() => statSync(`${file}.spacexsi.refresh.lock`)).toThrow();
+    });
+  });
+
   it.each([
     { spacexai: creds, spacexsi: { ...creds, access: 'newer' } },
     { spacexsi: { ...creds, access: 'newer' }, grok: creds },

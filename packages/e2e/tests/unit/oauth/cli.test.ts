@@ -64,7 +64,7 @@ describe('e2e models', () => {
   });
 
   it('lists a provider whose API key is set alongside the stored logins', async () => {
-    vi.stubEnv('E2E_OAUTH_CREDENTIALS', JSON.stringify({ spacexsi: { access: 'x', refresh: '', expires: 0 } }));
+    vi.stubEnv('E2E_OAUTH_CREDENTIALS', JSON.stringify({ spacexai: { access: 'x', refresh: '', expires: 0 } }));
     vi.stubEnv('OPENCODE_API_KEY', 'oc_sk_env');
     const listed: string[] = [];
     const out: string[] = [];
