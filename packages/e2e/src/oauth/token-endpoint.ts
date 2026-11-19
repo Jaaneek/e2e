@@ -6,6 +6,7 @@
  */
 
 import { z } from 'zod';
+import { USER_AGENT } from '@e2e-dev/core/lib/internal/client-identity';
 import { OAuthError, describeResponse, readJsonBody, type OAuthErrorCode } from './errors.ts';
 
 /**
@@ -21,10 +22,10 @@ const TokenResponseSchema = z.looseObject({
 
 export type TokenResponse = z.infer<typeof TokenResponseSchema>;
 
-export async function postForm(url: string, params: Record<string, string>, signal?: AbortSignal, userAgent?: string): Promise<Response> {
+export async function postForm(url: string, params: Record<string, string>, signal?: AbortSignal): Promise<Response> {
   return fetch(url, {
     method: 'POST',
-    headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json', ...(userAgent === undefined ? {} : { 'user-agent': userAgent }) },
+    headers: { 'content-type': 'application/x-www-form-urlencoded', accept: 'application/json', 'user-agent': USER_AGENT },
     body: new URLSearchParams(params),
     ...(signal === undefined ? {} : { signal }),
   });
@@ -42,9 +43,8 @@ export async function requestTokens(
   params: Record<string, string>,
   rejected: OAuthErrorCode = 'FLOW_FAILED',
   signal?: AbortSignal,
-  userAgent?: string,
 ): Promise<TokenResponse> {
-  const response = await postForm(url, params, signal, userAgent);
+  const response = await postForm(url, params, signal);
   if (!response.ok) {
     const code = response.status === 400 || response.status === 401 ? rejected : 'FLOW_FAILED';
     throw new OAuthError(code, `${vendor} token request failed (${await describeResponse(response)})`);

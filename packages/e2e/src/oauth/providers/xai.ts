@@ -6,7 +6,6 @@
  */
 
 import { z } from 'zod';
-import { USER_AGENT } from '@e2e-dev/core/lib/internal/client-identity';
 import { rfc8628Flow } from '../device-code.ts';
 import { OAuthError, describeResponse, readJsonBody } from '../errors.ts';
 import { decodeJwtPayload } from '../jwt.ts';
@@ -42,7 +41,6 @@ export function createXaiProvider(options: XaiProviderOptions = {}): OAuthProvid
         tokenUrl: `${issuer}/oauth2/token`,
         clientId: CLIENT_ID,
         request: { scope: SCOPE, referrer },
-        userAgent: USER_AGENT,
         callbacks,
       });
       return toCredentials(tokens, '');
@@ -53,8 +51,6 @@ export function createXaiProvider(options: XaiProviderOptions = {}): OAuthProvid
         `${issuer}/oauth2/token`,
         { grant_type: 'refresh_token', refresh_token: credentials.refresh, client_id: CLIENT_ID },
         'LOGIN_REQUIRED',
-        undefined,
-        USER_AGENT,
       );
       return toCredentials(tokens, credentials.refresh);
     },
