@@ -32,7 +32,7 @@ describe('FileCredentialStore', () => {
     expect(() => statSync(`${file}.lock`)).toThrow();
   });
 
-  it('reads a login an earlier release stored under an alias, and keeps it under that key so that release still finds it', async () => {
+  it('reads a login an earlier release stored under a legacy key, and keeps it under that key so that release still finds it', async () => {
     const file = tempFile();
     const store = new FileCredentialStore(file);
     await store.set('openai', creds);
@@ -45,7 +45,7 @@ describe('FileCredentialStore', () => {
     expect(readFileSync(file, 'utf8')).toBe('{}\n');
   });
 
-  it('refreshes a login stored under an alias holding the lock an earlier release holds for it', async () => {
+  it('refreshes a login stored under a legacy key holding the lock an earlier release holds for it', async () => {
     const file = tempFile();
     const store = new FileCredentialStore(file);
     await store.set('openai', creds);
@@ -56,18 +56,23 @@ describe('FileCredentialStore', () => {
     });
   });
 
-  it.each([
-    { spacexai: creds, spacexsi: { ...creds, access: 'newer' } },
-    { spacexsi: { ...creds, access: 'newer' }, grok: creds },
-  ])('prefers the login under the id to one under an alias: %j', async (entries) => {
+  it('prefers the login under the id to one under its legacy key', async () => {
     const file = tempFile();
     const store = new FileCredentialStore(file);
     await store.set('openai', creds);
-    writeFileSync(file, JSON.stringify(entries));
+    writeFileSync(file, JSON.stringify({ spacexai: creds, spacexsi: { ...creds, access: 'newer' } }));
     expect(await store.get('spacexsi')).toEqual({ ...creds, access: 'newer' });
     expect(await store.list()).toEqual(['spacexsi']);
     await store.remove('spacexsi');
     expect(await store.list()).toEqual([]);
+  });
+
+  it('reads no login under a CLI alias, since no release stored one there', async () => {
+    const file = tempFile();
+    const store = new FileCredentialStore(file);
+    await store.set('openai', creds);
+    writeFileSync(file, JSON.stringify({ grok: creds }));
+    expect(await store.get('spacexsi')).toBeUndefined();
   });
 
   it('keeps other providers when one is written, even from concurrent writers', async () => {
@@ -188,7 +193,7 @@ describe('EnvCredentialStore', () => {
     expect(defaultCredentialStore({ [CREDENTIALS_ENV]: '' })).toBeInstanceOf(FileCredentialStore);
   });
 
-  it('reads a login the variable holds under an alias', async () => {
+  it('reads a login the variable holds under a legacy key', async () => {
     const store = defaultCredentialStore({ [CREDENTIALS_ENV]: JSON.stringify({ spacexai: creds }) });
     expect(await store.get('spacexsi')).toEqual(creds);
     expect(await store.list()).toEqual(['spacexsi']);

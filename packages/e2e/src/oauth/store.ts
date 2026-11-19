@@ -13,7 +13,6 @@ import { homedir } from 'node:os';
 import path from 'node:path';
 import { withFileLock } from '../internal/file-lock.ts';
 import { OAuthError } from './errors.ts';
-import { canonicalProviderId } from './provider-ids.ts';
 import type { CredentialStore, OAuthCredentials } from './types.ts';
 
 export const CREDENTIALS_ENV = 'E2E_OAUTH_CREDENTIALS';
@@ -54,8 +53,7 @@ export class FileCredentialStore implements CredentialStore {
   }
 
   async remove(providerId: string): Promise<void> {
-    const id = canonicalProviderId(providerId);
-    await this.update((all) => Object.fromEntries(Object.entries(all).filter(([key]) => canonicalProviderId(key) !== id)));
+    await this.update((all) => Object.fromEntries(Object.entries(all).filter(([key]) => currentId(key) !== providerId)));
   }
 
   async list(): Promise<string[]> {
@@ -131,14 +129,20 @@ export class EnvCredentialStore implements CredentialStore {
   }
 }
 
+/** Keys an earlier release stored a login under, to the provider id that reads it now. Kept as is so that release still finds the login. */
+const LEGACY_KEYS: ReadonlyMap<string, string> = new Map([['spacexai', 'spacexsi']]);
+
+function currentId(key: string): string {
+  return LEGACY_KEYS.get(key) ?? key;
+}
+
 function storedKey(all: CredentialsFile, providerId: string): string {
-  const id = canonicalProviderId(providerId);
-  if (Object.hasOwn(all, id)) return id;
-  return Object.keys(all).find((key) => canonicalProviderId(key) === id) ?? id;
+  if (Object.hasOwn(all, providerId)) return providerId;
+  return Object.keys(all).find((key) => currentId(key) === providerId) ?? providerId;
 }
 
 function storedIds(all: CredentialsFile): string[] {
-  return [...new Set(Object.keys(all).map(canonicalProviderId))];
+  return [...new Set(Object.keys(all).map(currentId))];
 }
 
 /** The file's entries; one damaged entry is dropped rather than taking every login down with it. */
